@@ -84,15 +84,23 @@ public class BluetoothLeClass{
     // connection change and services discovered.
     private final BluetoothGattCallback mGattCallback = new BluetoothGattCallback() {
         @Override
+        public void onMtuChanged(BluetoothGatt gatt, int mtu, int status) {
+            super.onMtuChanged(gatt, mtu, status);
+            Log.i(TAG, "onMtuChanged: "+mtu+";"+status);
+            mBluetoothGatt.discoverServices();
+        }
+
+        @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
+                mBluetoothGatt.requestMtu(24);
             	if(mOnConnectListener!=null)
             		mOnConnectListener.onConnect(gatt);
+
                 Log.i(TAG, "Connected to GATT server.");
 
                 // Attempts to discover services after successful connection.
-                Log.i(TAG, "Attempting to start service discovery:" +
-                        mBluetoothGatt.discoverServices());
+                Log.i(TAG, "Attempting to start service discovery:" );
 
             } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
                 if(mOnDisconnectListener!=null)
@@ -125,6 +133,11 @@ public class BluetoothLeClass{
                 mOnDataAvailableListener.onCharacteristicRead(gatt, characteristic, 0);
         		mOnDataAvailableListener.onCharacteristicWrite(gatt, characteristic);
 
+        }
+
+        @Override
+        public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
+            super.onCharacteristicWrite(gatt, characteristic, status);
         }
     };
 
@@ -260,7 +273,6 @@ public class BluetoothLeClass{
      */
     public List<BluetoothGattService> getSupportedGattServices() {
         if (mBluetoothGatt == null) return null;
-
         return mBluetoothGatt.getServices();
     }
 }

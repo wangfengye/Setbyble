@@ -8,11 +8,9 @@ import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.Snackbar;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -21,7 +19,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.EditText;
+import android.widget.Button;
 
 import com.ascend.wangfeng.setbyble.adapter.MessageAdapter;
 import com.ascend.wangfeng.setbyble.adapter.MyItemDecoration;
@@ -32,6 +30,7 @@ import com.ascend.wangfeng.setbyble.ble.Utils;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
@@ -47,6 +46,10 @@ public class MainActivity extends AppCompatActivity {
     RecyclerView mSets;
     @BindView(R.id.activity_main)
     CoordinatorLayout mActivityMain;
+    @BindView(R.id.test)
+    Button mTest;
+    @BindView(R.id.split)
+    View mSplit;
 
 
     private ArrayList<String> mMessagesData;
@@ -87,6 +90,8 @@ public class MainActivity extends AppCompatActivity {
                         Log.i(TAG, "run: " + finalRequest);
                         //处理数据
                         formatRequest(finalRequest);
+                        Log.i(TAG, "原始数据: " + finalRequest);
+
                     }
                 });
             }
@@ -127,46 +132,78 @@ public class MainActivity extends AppCompatActivity {
         initData();
         initView();
         initBle();
+        setViewGone();
+    }
+
+    private void setViewGone() {
+        mSplit.setVisibility(View.GONE);mMessages.setVisibility(View.GONE);
+        mTest.setVisibility(View.GONE);
+
     }
 
     private void initView() {
+        mTest.setOnClickListener(new View.OnClickListener() {
+                                     @Override
+                                     public void onClick(View view) {
+                                         String ll = "15967105557";
+                                         for (int i = 0; i < new Random().nextInt(5); i++) {
+                                             ll += ",1825597826";
+                                         }
+                                         formatRequest("\r\nAPHONE: " + ll + "\r\n");
+                                     }
+                                 }
+        );
         mToolbar.setTitle("配置");
-
         setSupportActionBar(mToolbar);
         mMessageAdapter = new MessageAdapter(mMessagesData);
         mMessages.setAdapter(mMessageAdapter);
         mMessages.setLayoutManager(new LinearLayoutManager(getBaseContext()));
-        mSetAdapter = new SetAdapter(mSetBeen);
-
-        mSetAdapter.setListener(new SetAdapter.OnItemListener() {
-            @Override
-            public void onItemClickListener(View view, final int position) {
-                Log.i(TAG, "onItemClickListener: ");
-                final EditText edit = new EditText(MainActivity.this);
-                new AlertDialog.Builder(MainActivity.this)
-                        .setTitle("请输入")
-                        .setView(edit)
-                        .setPositiveButton("确认", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface anInterface, int i) {
-                                String value = "SET " + mSetBeen.get(position).getHd() + ":"
-                                        + edit.getText().toString();
-                                sendData(value);
-                            }
-                        })
-                        .setNegativeButton("取消", null)
-                        .show();
-            }
-        });
+        mSetAdapter = new SetAdapter(this, mSetBeen);
         mSets.setAdapter(mSetAdapter);
         mSets.setLayoutManager(new LinearLayoutManager(getBaseContext()));
         mSets.addItemDecoration(new MyItemDecoration(this, LinearLayoutManager.HORIZONTAL));
     }
 
-    private void sendData(String value) {
+    public void sendData(final String value1) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if (gattCharacteristic != null) {
+                    String value = value1;
+                    while (value.length() > 20) {
+                        String sendValue = value.substring(0, 20);
+                        value = value.substring(20, value.length());
+                        gattCharacteristic.setValue(sendValue);
+                        Log.i(TAG, "原始: " + sendValue);
+                        mBLE.writeCharacteristic(gattCharacteristic);
+                        try {
+                            Thread.sleep(2);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    if (value.length() > 0) {
+                        gattCharacteristic.setValue(value);
+                        Log.i(TAG, "原始: " + value);
+                        mBLE.writeCharacteristic(gattCharacteristic);
+                    }
+                }
+            }
+        }).start();
         if (gattCharacteristic != null) {
-            gattCharacteristic.setValue(value);
-            mBLE.writeCharacteristic(gattCharacteristic);
+
+            while (value.length() > 20) {
+                String sendValue = value.substring(0, 20);
+                value = value.substring(20, value.length());
+                gattCharacteristic.setValue(sendValue);
+                Log.i(TAG, "原始: " + sendValue);
+                mBLE.writeCharacteristic(gattCharacteristic);
+            }
+            if (value.length() > 0) {
+                gattCharacteristic.setValue(value);
+                Log.i(TAG, "原始: " + value);
+                mBLE.writeCharacteristic(gattCharacteristic);
+            }
         }
     }
 
@@ -191,6 +228,7 @@ public class MainActivity extends AppCompatActivity {
         //收到BLE终端数据交互的事件
         mBLE.setOnDataAvailableListener(mOnDataAvailable);
         mBLE.connect(address);
+
 
     }
 
@@ -253,6 +291,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.e(TAG, "---->char value:" + new String(data));
                 }
                 if (gattCharacteristic.getUuid().toString().equals(UUID_KEY_DATA)) {
+
                     this.gattCharacteristic = gattCharacteristic;
                     mBLE.setCharacteristicNotification(gattCharacteristic, true);
                     sendData("GET ALL");
@@ -272,6 +311,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
+
     private int hasParam(String param) {
         for (int i = 0; i < mSetBeen.size(); i++) {
             SetBean bean = mSetBeen.get(i);
@@ -279,7 +319,9 @@ public class MainActivity extends AppCompatActivity {
         }
         return -1;
     }
+
     private void formatRequest(String request) {
+        Log.i(TAG, "formatRequest: " + request);
         value += request;
         String subValue = "";//截取第一段信息;
         int end = 0;
@@ -290,19 +332,38 @@ public class MainActivity extends AppCompatActivity {
             subValue = value.substring(0, end);
             value = value.substring(end + separator.length(), value.length());
         }
-        Log.i(TAG, "formatRequest: "+subValue);
+        Log.i(TAG, "原始2: " + subValue);
+
         char[] chars = subValue.toCharArray();
         if (chars.length > 0) {
             int firstChar = chars[0];
             if (firstChar >= 65 && firstChar <= 90) {
                 //配置信息
-                String[] params = subValue.split(":");
-                if (params.length<2)return;
+                String[] params = new String[2];
+                String[] splits = subValue.split(":");
+                if (splits.length == 2) {
+                    params[0] = splits[0];
+                    params[1] = splits[1];
+                } else if (splits.length == 1) {
+                    params[0] = splits[0];
+                    params[1] = "";
+                }
+
                 int position = hasParam(params[0]);
-                if (position == -1) {
-                    mSetBeen.add(new SetBean(params[0], params[1]));
+                int type = getTypeBySet(params[0]);
+                if (type == SetBean.TYPE_ONE_TO_ONE) {
+                    if (position == -1) {
+                        mSetBeen.add(new SetBean(type, params[0], params[1]));
+                    } else {
+                        mSetBeen.get(position).setBd(params[1]);
+                    }
                 } else {
-                    mSetBeen.get(position).setBd(params[1]);
+                    String[] contents = params[1].split(",");
+                    if (position == -1) {
+                        mSetBeen.add(new SetBean(type, params[0], contents));
+                    } else {
+                        mSetBeen.get(position).setList(contents);
+                    }
                 }
                 mSetAdapter.notifyDataSetChanged();
             } else {
@@ -310,11 +371,21 @@ public class MainActivity extends AppCompatActivity {
                 mMessagesData.add(subValue);
                 if (mMessagesData.size() >= 100) mMessagesData.remove(0);
                 mMessageAdapter.notifyDataSetChanged();
-                mMessages.scrollToPosition(mMessagesData.size()-1);
+                mMessages.scrollToPosition(mMessagesData.size() - 1);
 
             }
         }
 
+    }
+
+    //获取配置项是一对多还是一对一
+    private int getTypeBySet(String name) {
+        if ("AMAC".equals(name) ||
+                "APHONE".equals(name)) {
+            return SetBean.TYPE_ONE_TO_MORE;
+        } else {
+            return SetBean.TYPE_ONE_TO_ONE;
+        }
     }
 
 }
