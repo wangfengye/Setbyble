@@ -1,12 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-              android:orientation="vertical"
+              android:orientation="horizontal"
               android:paddingTop="8dp"
               android:paddingBottom="8dp"
               android:layout_width="match_parent"
               android:layout_height="wrap_content">
 <TextView
     android:id="@+id/text"
-    android:layout_width="match_parent"
+    android:layout_width="0dp"
+    android:layout_weight="4"
     android:layout_height="24dp"/>
+    <ImageView
+        android:id="@+id/delete"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_delete"/>
 </LinearLayout>

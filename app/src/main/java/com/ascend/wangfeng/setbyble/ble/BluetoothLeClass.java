@@ -25,6 +25,7 @@ import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
+import android.os.Build;
 import android.util.Log;
 
 import java.util.List;
@@ -93,8 +94,10 @@ public class BluetoothLeClass{
         @Override
         public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
             if (newState == BluetoothProfile.STATE_CONNECTED) {
-                mBluetoothGatt.requestMtu(24);
-            	if(mOnConnectListener!=null)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    mBluetoothGatt.requestMtu(24);
+                }
+                if(mOnConnectListener!=null)
             		mOnConnectListener.onConnect(gatt);
 
                 Log.i(TAG, "Connected to GATT server.");

@@ -20,6 +20,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
 import com.ascend.wangfeng.setbyble.adapter.MessageAdapter;
 import com.ascend.wangfeng.setbyble.adapter.MyItemDecoration;
@@ -34,6 +35,7 @@ import java.util.Random;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import butterknife.OnClick;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getName();
@@ -50,6 +52,8 @@ public class MainActivity extends AppCompatActivity {
     Button mTest;
     @BindView(R.id.split)
     View mSplit;
+    @BindView(R.id.reload)
+    Button mReload;
 
 
     private ArrayList<String> mMessagesData;
@@ -120,6 +124,8 @@ public class MainActivity extends AppCompatActivity {
         public void onDisconnect(BluetoothGatt gatt) {
             isConnected = false;
             invalidateOptionsMenu();
+            Toast.makeText(MainActivity.this, "连接已断开", Toast.LENGTH_SHORT).show();
+            MainActivity.this.finish();
         }
     };
 
@@ -136,7 +142,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setViewGone() {
-        mSplit.setVisibility(View.GONE);mMessages.setVisibility(View.GONE);
+        mSplit.setVisibility(View.GONE);
+        mMessages.setVisibility(View.GONE);
         mTest.setVisibility(View.GONE);
 
     }
@@ -155,6 +162,14 @@ public class MainActivity extends AppCompatActivity {
         );
         mToolbar.setTitle("配置");
         setSupportActionBar(mToolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowTitleEnabled(true);
+        mToolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                finish();
+            }
+        });
         mMessageAdapter = new MessageAdapter(mMessagesData);
         mMessages.setAdapter(mMessageAdapter);
         mMessages.setLayoutManager(new LinearLayoutManager(getBaseContext()));
@@ -162,6 +177,16 @@ public class MainActivity extends AppCompatActivity {
         mSets.setAdapter(mSetAdapter);
         mSets.setLayoutManager(new LinearLayoutManager(getBaseContext()));
         mSets.addItemDecoration(new MyItemDecoration(this, LinearLayoutManager.HORIZONTAL));
+    }
+
+    /**
+     * @param hd 头部
+     * @param bd 信息
+     */
+    public void sendData(String hd, String bd) {
+        String value = "SET " + hd + ":"
+                + bd;
+        sendData(value);
     }
 
     public void sendData(final String value1) {
@@ -350,22 +375,12 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 int position = hasParam(params[0]);
-                int type = getTypeBySet(params[0]);
-                if (type == SetBean.TYPE_ONE_TO_ONE) {
-                    if (position == -1) {
-                        mSetBeen.add(new SetBean(type, params[0], params[1]));
-                    } else {
-                        mSetBeen.get(position).setBd(params[1]);
-                    }
+                if (position == -1) {
+                    mSetBeen.add(new SetBean(params[0], params[1]));
                 } else {
-                    String[] contents = params[1].split(",");
-                    if (position == -1) {
-                        mSetBeen.add(new SetBean(type, params[0], contents));
-                    } else {
-                        mSetBeen.get(position).setList(contents);
-                    }
+                    mSetBeen.get(position).setBd(params[1]);
                 }
-                mSetAdapter.notifyDataSetChanged();
+                mSetAdapter.update(mSetBeen);
             } else {
                 //日志
                 mMessagesData.add(subValue);
@@ -375,17 +390,13 @@ public class MainActivity extends AppCompatActivity {
 
             }
         }
-
     }
 
-    //获取配置项是一对多还是一对一
-    private int getTypeBySet(String name) {
-        if ("AMAC".equals(name) ||
-                "APHONE".equals(name)) {
-            return SetBean.TYPE_ONE_TO_MORE;
-        } else {
-            return SetBean.TYPE_ONE_TO_ONE;
-        }
+    @OnClick(R.id.reload)
+    public void onViewClicked() {
+        //重载数据
+        mSetBeen.clear();
+        mSetAdapter.update(mSetBeen);
+        sendData("GET ALL");
     }
-
 }

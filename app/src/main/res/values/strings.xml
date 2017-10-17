@@ -1,3 +1,20 @@
 <resources>
     <string name="app_name">配置工具(ble)</string>
+    <string name="equipment">可用设备列表</string>
+    <string name="equiment_id">设备编号</string>
+    <string name="equiment_mac">设备Mac地址</string>
+    <string name="searching">正在搜索</string>
+    <string name="search_finish">---搜索完成</string>
+    <!--设备配置参数对应中文-->
+    <string name="mac">设备MAC地址</string>
+    <string name="dev">设备编号</string>
+    <string name="upld">数据上报开关</string>
+    <string name="tval">报警间隔</string>
+    <string name="tcp">数据上传地址</string>
+    <string name="amac">报警 MAC</string>
+    <string name="aphone">报警手机号码</string>
+    <string name="s">s</string>
+    <string name="off">已关闭</string>
+    <string name="on">已开启</string>
+    <string name="input_error">输入格式错误</string>
 </resources>

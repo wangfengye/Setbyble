@@ -16,11 +16,12 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.RelativeLayout;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.ascend.wangfeng.setbyble.adapter.MyItemDecoration;
 import com.ascend.wangfeng.setbyble.adapter.ScanAdapter;
-import com.ascend.wangfeng.setbyble.ble.BluetoothLeClass;
+import com.ascend.wangfeng.setbyble.util.TimeUtil;
 
 import java.util.ArrayList;
 
@@ -30,24 +31,26 @@ import butterknife.ButterKnife;
 public class ScanActivity extends AppCompatActivity {
 
     public static final String TAG = ScanActivity.class.getName();
-    public static final int SCAN_PERIOD = 10000;
+    public static final int SCAN_PERIOD = 10 * 1000;
     @BindView(R.id.toolbar)
     Toolbar mToolbar;
     @BindView(R.id.scans)
     RecyclerView mScans;
     @BindView(R.id.activity_scan)
-    RelativeLayout mActivityScan;
+    LinearLayout mActivityScan;
+    @BindView(R.id.result)
+    TextView mResult;
 
     private ArrayList<BluetoothDevice> mDevices;
     private ScanAdapter adapter;
     private Boolean isScan;
     private BluetoothAdapter mBleAdapter;
-    private BluetoothLeClass mBLE;
     private Handler mHandler;
     /*扫描 device的回调*/
     private BluetoothAdapter.LeScanCallback mLeScanCallback = new BluetoothAdapter.LeScanCallback() {
         @Override
         public void onLeScan(final BluetoothDevice device, int i, byte[] bytes) {
+            Log.i(TAG, "run: " + device.getAddress());
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -75,37 +78,41 @@ public class ScanActivity extends AppCompatActivity {
         if (mBleAdapter == null) {
             Snackbar.make(mActivityScan, "不支持蓝牙", Snackbar.LENGTH_SHORT).show();
         }
-        mBleAdapter.enable();
-        mBLE = new BluetoothLeClass(this);
-        if (!mBLE.initialize()) {
-            Log.e(TAG, "Unable to initialize Bluetooth");
-            finish();
+        if (!mBleAdapter.isEnabled()) {
+            mBleAdapter.enable();
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
         scanDevice(true);
     }
 
     private void scanDevice(boolean enable) {
         if (enable) {
+            mDevices.clear();
+            adapter.notifyDataSetChanged();
+            mResult.setText(R.string.searching);
+            mBleAdapter.startLeScan(mLeScanCallback);
+            isScan = true;
             mHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
                     isScan = false;
+                    mResult.setText(TimeUtil.getTime() + getString(R.string.search_finish));
                     mBleAdapter.stopLeScan(mLeScanCallback);
-                    invalidateOptionsMenu();
                 }
             }, SCAN_PERIOD);
-            isScan = true;
-            mBleAdapter.startLeScan(mLeScanCallback);
         } else {
             isScan = false;
+            mResult.setText(TimeUtil.getTime() + getString(R.string.search_finish));
             mBleAdapter.stopLeScan(mLeScanCallback);
         }
-        invalidateOptionsMenu();
     }
 
     private void initView() {
-        mToolbar.setTitle("搜索设备");
-
+        mToolbar.setTitle(R.string.equipment);
         setSupportActionBar(mToolbar);
         mScans.setAdapter(adapter);
         mScans.setLayoutManager(new LinearLayoutManager(getBaseContext()));
@@ -130,18 +137,14 @@ public class ScanActivity extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.scan_set, menu);
-        if (isScan) {
-            menu.findItem(R.id.menu_search).setTitle("正在搜索");
-        } else {
-            menu.findItem(R.id.menu_search).setTitle("搜索");
-        }
         return super.onCreateOptionsMenu(menu);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        mDevices.clear();
-        scanDevice(!isScan);
+        if (!isScan) {
+            scanDevice(true);
+        }
         invalidateOptionsMenu();
         return super.onOptionsItemSelected(item);
 
